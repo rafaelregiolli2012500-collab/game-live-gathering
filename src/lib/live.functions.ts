@@ -59,7 +59,7 @@ export const updateLiveConfig = createServerFn({ method: "POST" })
       rules: z.array(ruleSchema).max(100),
       rules_version: z.number(),
       combat: z.record(z.string(), z.unknown()),
-    }).parse(input) as LiveConfig,
+    }).parse(input) as unknown as LiveConfig,
   )
   .handler(async ({ data }) => {
     const config = { ...data, id: CONFIG_ID, combat: { ...DEFAULT_LIVE_CONFIG.combat, ...data.combat } };
