@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      extension_settings: {
+        Row: {
+          default_character: string
+          id: string
+          keyword_flavio: string
+          keyword_lula: string
+          last_seen_at: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          default_character?: string
+          id: string
+          keyword_flavio?: string
+          keyword_lula?: string
+          last_seen_at?: string | null
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          default_character?: string
+          id?: string
+          keyword_flavio?: string
+          keyword_lula?: string
+          last_seen_at?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       live_config: {
         Row: {
           data: Json
@@ -122,6 +152,33 @@ export type Database = {
           mode?: string
           player_name?: string
           score?: number
+        }
+        Relationships: []
+      }
+      viewer_teams: {
+        Row: {
+          character: string
+          game_id: string
+          id: string
+          source_text: string | null
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          character: string
+          game_id?: string
+          id?: string
+          source_text?: string | null
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          character?: string
+          game_id?: string
+          id?: string
+          source_text?: string | null
+          updated_at?: string
+          username?: string
         }
         Relationships: []
       }
