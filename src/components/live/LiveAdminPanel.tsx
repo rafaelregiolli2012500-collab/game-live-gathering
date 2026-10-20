@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Activity, Bot, Check, CircleAlert, Radio, Save, Send, Settings2, SlidersHorizontal, Trophy, X } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/game-ui/badge";
+import { Button } from "@/components/game-ui/button";
+import { Input } from "@/components/game-ui/input";
 import type { CombatStats } from "@/game/types";
 import { giftIcon, SPECIAL_MOVES } from "@/lib/live";
 import type { DemoGiftCreate, GiftEvent, LiveConfig, LiveStatus, RoundResult, SpecialMove } from "@/lib/live";
