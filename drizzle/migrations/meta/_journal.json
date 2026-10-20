@@ -8,6 +8,13 @@
       "when": 1792539734827,
       "tag": "0000_game_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792540061137,
+      "tag": "0001_extension_bridge",
+      "breakpoints": true
     }
   ]
 }
