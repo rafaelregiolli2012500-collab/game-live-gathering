@@ -14,7 +14,117 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      live_config: {
+        Row: {
+          data: Json
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          data: Json
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          data?: Json
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      live_events: {
+        Row: {
+          created_at: string
+          data: Json
+          event_id: string
+          game_id: string
+          id: string
+          sequence: number
+        }
+        Insert: {
+          created_at?: string
+          data: Json
+          event_id: string
+          game_id: string
+          id?: string
+          sequence?: never
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          event_id?: string
+          game_id?: string
+          id?: string
+          sequence?: never
+        }
+        Relationships: []
+      }
+      round_results: {
+        Row: {
+          contributors: Json
+          created_at: string
+          game_id: string
+          gifts_count: number
+          id: string
+          loser: string
+          round: number
+          session_id: string
+          winner: string
+        }
+        Insert: {
+          contributors?: Json
+          created_at?: string
+          game_id?: string
+          gifts_count?: number
+          id?: string
+          loser: string
+          round: number
+          session_id: string
+          winner: string
+        }
+        Update: {
+          contributors?: Json
+          created_at?: string
+          game_id?: string
+          gifts_count?: number
+          id?: string
+          loser?: string
+          round?: number
+          session_id?: string
+          winner?: string
+        }
+        Relationships: []
+      }
+      scores: {
+        Row: {
+          character: string
+          created_at: string
+          difficulty: string
+          id: string
+          mode: string
+          player_name: string
+          score: number
+        }
+        Insert: {
+          character: string
+          created_at?: string
+          difficulty: string
+          id?: string
+          mode: string
+          player_name: string
+          score: number
+        }
+        Update: {
+          character?: string
+          created_at?: string
+          difficulty?: string
+          id?: string
+          mode?: string
+          player_name?: string
+          score?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
