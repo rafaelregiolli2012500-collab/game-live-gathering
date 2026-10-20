@@ -137,6 +137,11 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+@layer base {
+  * { box-sizing: border-box; border-color: var(--color-border); }
+  html, body { min-height: 100%; margin: 0; }
+  body { background: var(--background); color: var(--foreground); font-family: "Plus Jakarta Sans", sans-serif; }
+  button, select, input { font: inherit; }
   button:not(:disabled) { cursor: pointer; }
 }
 
