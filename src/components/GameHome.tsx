@@ -12,7 +12,15 @@ import { CANVAS_H, CANVAS_W, CHARACTERS, portraitPath } from "@/game/assets";
 import { ArenaEngine, emptyStats } from "@/game/engine";
 import type { CharacterId, HudSnapshot } from "@/game/types";
 import { useGiftSocket } from "@/hooks/useGiftSocket";
-import { DEFAULT_LIVE_CONFIG, fetchLiveConfig, fetchLiveEvents, fetchLiveStatus, fetchRoundResults, giftEffectLabel, giftIcon, saveRoundResult, sendDemoGift, updateLiveConfig } from "@/lib/live";
+import { DEFAULT_LIVE_CONFIG, giftEffectLabel, giftIcon } from "@/lib/live";
+import * as liveApi from "@/lib/live.functions";
+const fetchLiveConfig = () => liveApi.fetchLiveConfig();
+const fetchLiveEvents = () => liveApi.fetchLiveEvents();
+const fetchLiveStatus = () => liveApi.fetchLiveStatus();
+const fetchRoundResults = () => liveApi.fetchRoundResults();
+const updateLiveConfig = (data: LiveConfig) => liveApi.updateLiveConfig({ data });
+const sendDemoGift = (data: DemoGiftCreate) => liveApi.sendDemoGift({ data });
+const saveRoundResult = (data: RoundResultCreate) => liveApi.saveRoundResult({ data });
 import type { DemoGiftCreate, GiftEvent, LiveConfig, LiveStatus, RoundResult, RoundResultCreate } from "@/lib/live";
 
 type Screen = "menu" | "arena";
