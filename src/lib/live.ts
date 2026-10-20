@@ -1,4 +1,3 @@
-import { apiGet, apiPost, apiPut } from "@/lib/api";
 
 export type CharacterId = "lula" | "flavio";
 export type Mode = "cpu" | "2p" | "training" | "cpuvcpu";
@@ -121,14 +120,6 @@ export interface GiftSocketEvent {
 
 export type GiftSocketMessage = GiftSocketStatus | GiftSocketEvent;
 
-export const fetchLiveConfig = () => apiGet<LiveConfig>("/live/config");
-export const updateLiveConfig = (config: LiveConfig) => apiPut<LiveConfig>("/live/config", config);
-export const sendDemoGift = (payload: DemoGiftCreate) => apiPost<GiftEvent>("/live/demo/gift", payload);
-export const fetchLiveStatus = () => apiGet<LiveStatus>("/live/status");
-export const fetchLiveEvents = () => apiGet<GiftEvent[]>("/live/events");
-export const fetchLiveQueue = () => apiGet<GiftEvent[]>("/live/queue");
-export const fetchRoundResults = () => apiGet<RoundResult[]>("/live/results");
-export const saveRoundResult = (payload: RoundResultCreate) => apiPost<RoundResult>("/live/results", payload);
 
 export const DEFAULT_LIVE_CONFIG: LiveConfig = {
   id: "default",
