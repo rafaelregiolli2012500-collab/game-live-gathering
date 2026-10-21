@@ -114,7 +114,7 @@
   // ---------- readers ----------
   const send = (payload) => chrome.runtime.sendMessage({ kind: "event", payload }).catch(() => {});
   const field = (row, path) => (path ? row.querySelector(path) : row);
-  let observers = [];
+  let watchers = [];
   let enabled = true;
 
   function parseQuantity(text) {
@@ -122,35 +122,56 @@
     return m ? Number(m[1]) : 1;
   }
 
+  // Watches a list container. New rows may arrive as direct children OR nested
+  // inside wrapper nodes the site adds — both cases are resolved back to a row.
   function watch(map, onRow, onUpdate) {
     const container = document.querySelector(map.container);
-    if (!container) return false;
+    if (!container || !container.isConnected) return false;
     const seen = new WeakSet();
-    [...container.children].forEach((row) => { seen.add(row); onUpdate && onUpdate(row, true); });
+    const processRow = (row, initial) => {
+      if (!row || seen.has(row)) return;
+      seen.add(row);
+      if (initial) onUpdate && onUpdate(row, true);
+      else onRow(row);
+    };
+    [...container.children].forEach((row) => processRow(row, true));
     const obs = new MutationObserver((mutations) => {
       if (!enabled) return;
       for (const m of mutations) {
         for (const node of m.addedNodes) {
           if (node.nodeType !== 1) continue;
-          if (node.parentElement === container && !seen.has(node)) { seen.add(node); onRow(node); }
+          // Direct child of the list: it IS a new row.
+          if (node.parentElement === container) { processRow(node, false); continue; }
+          // Nested inside the list: a wrapper was added — process every unseen row it contains.
+          if (container.contains(node)) {
+            const row = rowOf(container, node);
+            if (row && row !== node) {
+              if (!seen.has(row)) processRow(row, false);
+              else {
+                // Existing row got new nested content (e.g. gift combo counter): treat as update.
+                if (onUpdate) onUpdate(row, false);
+              }
+            }
+          }
         }
-        if (onUpdate) {
+        if (onUpdate && (m.type === "characterData" || m.type === "attributes" || m.type === "childList")) {
           const target = m.target.nodeType === 1 ? m.target : m.target.parentElement;
           const row = target && container.contains(target) && target !== container ? rowOf(container, target) : null;
           if (row && seen.has(row)) onUpdate(row, false);
         }
       }
     });
-    obs.observe(container, { childList: true, subtree: true, characterData: true });
-    observers.push(obs);
+    obs.observe(container, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["title", "aria-label", "alt"] });
+    watchers.push({ obs, container, map });
     return true;
   }
 
   async function attach() {
-    observers.forEach((o) => o.disconnect());
-    observers = [];
+    watchers.forEach((w) => w.obs.disconnect());
+    watchers = [];
     const { giftMap, chatMap, paused } = await chrome.storage.local.get(["giftMap", "chatMap", "paused"]);
     enabled = !paused;
+    let missing = false;
 
     if (giftMap) {
       const sent = new WeakMap();
@@ -168,16 +189,22 @@
         if (!rowIds.has(row)) rowIds.set(row, Date.now().toString(36) + "-" + ++rowSeq);
         send({ type: "gift", username, gift: gift.slice(0, 120), quantity: qty - prev, event_id: rowIds.get(row) + "-" + qty });
       };
-      if (!watch(giftMap, (row) => readGift(row, false), (row, initial) => readGift(row, initial))) retry();
+      if (!watch(giftMap, (row) => readGift(row, false), (row, initial) => readGift(row, initial))) missing = true;
     }
     if (chatMap) {
+      const lastSent = new WeakMap();
       const ok = watch(chatMap, (row) => {
         const username = textOf(field(row, chatMap.username)).split("\n")[0];
         const message = textOf(field(row, chatMap.message));
-        if (username && message) send({ type: "chat", username, message: message.slice(0, 500) });
+        if (!username || !message) return;
+        // Same row re-added by a re-render: skip duplicates.
+        if (lastSent.get(row) === username + "|" + message) return;
+        lastSent.set(row, username + "|" + message);
+        send({ type: "chat", username, message: message.slice(0, 500) });
       });
-      if (!ok) retry();
+      if (!ok) missing = true;
     }
+    if (missing) retry();
   }
 
   let retryTimer = 0;
@@ -196,10 +223,14 @@
   });
 
   attach();
-  // TikTok re-renders panels; re-check every few seconds so the observer follows the new list.
+  // The live page re-renders its panels constantly. Re-attach whenever a watched
+  // container was replaced (detached from the document) or a saved area is missing.
   setInterval(async () => {
     const { giftMap, chatMap } = await chrome.storage.local.get(["giftMap", "chatMap"]);
-    const missing = [giftMap, chatMap].some((m) => m && document.querySelector(m.container) && !observers.length);
-    if (missing) attach();
-  }, 5000);
+    const maps = [giftMap, chatMap].filter(Boolean);
+    if (!maps.length) return;
+    const stale = watchers.some((w) => !w.container.isConnected || document.querySelector(w.map.container) !== w.container);
+    const unwatched = maps.some((m) => document.querySelector(m.container) && !watchers.some((w) => w.map === m));
+    if (stale || unwatched) attach();
+  }, 3000);
 })();
