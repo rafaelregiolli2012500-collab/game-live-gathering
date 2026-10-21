@@ -45,8 +45,8 @@
     let best = el;
     for (let cur = el.parentElement, i = 0; cur && cur !== document.body && i < 6; cur = cur.parentElement, i++) {
       // Stop at a list: the parent holds several siblings that look like "best" (same tag + classes).
-      const twins = [...cur.children].filter((c) => c.tagName === best.tagName && c.className === best.className).length;
-      if (twins >= 2) break;
+      const twins = [...cur.children].filter((c) => c.tagName === best.tagName && c.className === best.className && (c.innerText || "").trim().length > 8);
+      if (twins.length >= 3) break;
       const t = (cur.innerText || "").trim();
       if (!t || t.length > 260 || t.split("\n").length > 6) break;
       best = cur;
