@@ -34,7 +34,7 @@ const schema = jsonSchema<{ items: OcrItem[] }>({
 
 /** Reads a screenshot of a TikTok-style live chat/gift area and returns every visible row. */
 export async function readLiveImage(dataUrl: string, giftNames: string[], keywords: string[], signal?: AbortSignal): Promise<OcrItem[]> {
-  const apiKey = process.env.LOVABLE_API_KEY;
+  const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
   const provider = createOpenAI({
     baseURL: "https://ai.gateway.lovable.dev/v1",
