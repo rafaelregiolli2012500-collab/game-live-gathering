@@ -87,6 +87,22 @@ export const fetchLiveEvents = createServerFn({ method: "GET" }).handler(async (
   return (data ?? []).map(toEvent);
 });
 
+/** Recover missed realtime inserts without replaying gifts from before this page opened. */
+export const fetchIncomingGifts = createServerFn({ method: "GET" })
+  .inputValidator((input: unknown) => z.object({
+    after: z.number().int().min(0),
+    since: z.string().datetime(),
+  }).parse(input))
+  .handler(async ({ data }) => {
+    const db = await admin();
+    const { data: rows, error } = await db.from("live_events")
+      .select("id, sequence, data").eq("game_id", GAME_ID)
+      .gt("sequence", data.after).gte("created_at", data.since)
+      .order("sequence", { ascending: true }).limit(100);
+    if (error) throw new Error("Não foi possível recuperar os presentes");
+    return (rows ?? []).map(toEvent);
+  });
+
 export const sendDemoGift = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z.object({

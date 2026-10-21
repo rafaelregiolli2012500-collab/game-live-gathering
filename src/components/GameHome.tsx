@@ -22,6 +22,7 @@ const updateLiveConfig = (data: LiveConfig) => liveApi.updateLiveConfig({ data }
 const sendDemoGift = (data: DemoGiftCreate) => liveApi.sendDemoGift({ data });
 const saveRoundResult = (data: RoundResultCreate) => liveApi.saveRoundResult({ data });
 import type { DemoGiftCreate, GiftEvent, LiveConfig, LiveStatus, RoundResult, RoundResultCreate } from "@/lib/live";
+import type { GiftDelivery } from "@/lib/gift-feed";
 
 type Screen = "menu" | "arena";
 type UltraScore = Record<CharacterId, number>;
@@ -85,6 +86,7 @@ export default function Home() {
   const [recent, setRecent] = useState<GiftEvent[]>([]);
   const [giftsThisFight, setGiftsThisFight] = useState(0);
   const [captions, setCaptions] = useState<GiftEvent[]>([]);
+  const [delivery, setDelivery] = useState<Record<string, GiftDelivery>>({});
   const [captionSpeed, setCaptionSpeed] = useState(1);
   const [roundResult, setRoundResult] = useState<string | null>(null);
   const [roundCredits, setRoundCredits] = useState<RoundCredits | null>(null);
@@ -106,9 +108,11 @@ export default function Home() {
   const { events: socketEvents, status: socketStatus } = useGiftSocket("main-arena");
 
   const beginNextGift = useCallback(() => {
-    if (activeGiftRef.current || giftQueueRef.current.length === 0) return;
-    const event = giftQueueRef.current.shift()!;
+    if (!engineRef.current || activeGiftRef.current || giftQueueRef.current.length === 0) return;
+    const event = giftQueueRef.current.shift();
+    if (!event) return;
     activeGiftRef.current = event;
+    setDelivery((current) => ({ ...current, [event.event_id]: "processing" }));
     const speed = giftSpeedRef.current.get(event.id) ?? 1;
     engineRef.current?.notifyGift(speed);
     setCaptionSpeed(speed);
@@ -141,6 +145,7 @@ export default function Home() {
     const speed = event.quantity > 1 || previous?.username === event.username ? 2 : 1;
     giftSpeedRef.current.set(event.id, speed);
     giftQueueRef.current.push(event);
+    setDelivery((current) => ({ ...current, [event.event_id]: "queued" }));
     beginNextGift();
     setLastGift(event);
     addRoundContributor(event.username);
@@ -166,6 +171,7 @@ export default function Home() {
 
   /** Fires a gift's effect (boost / hadouken / domain) right after its thank-you cutscene. */
   const applyGift = useCallback((event: GiftEvent) => {
+    if (!engineRef.current) return;
     setCaptions((current) => current.filter((item) => item.id !== event.id));
     const fatality = fatalityEventsRef.current.has(event.id);
     const speed = giftSpeedRef.current.get(event.id) ?? 1;
@@ -210,13 +216,25 @@ export default function Home() {
       },
       onSpecialComplete: (eventId) => {
         if (activeGiftRef.current?.id !== eventId) return;
+        const completed = activeGiftRef.current;
+        setDelivery((current) => ({ ...current, [completed.event_id]: "completed" }));
         activeGiftRef.current = null;
         giftSpeedRef.current.delete(eventId);
         window.setTimeout(beginNextGift, 0);
       },
     });
     engineRef.current = engine;
-    return () => { engine.destroy(); engineRef.current = null; };
+    beginNextGift();
+    return () => {
+      engine.destroy(); engineRef.current = null;
+      const interrupted = activeGiftRef.current;
+      if (interrupted) {
+        giftQueueRef.current.unshift(interrupted);
+        activeGiftRef.current = null;
+        setCaptions([]);
+        setDelivery((current) => ({ ...current, [interrupted.event_id]: "queued" }));
+      }
+    };
     // Settings are pushed via setSettings; only fighters/screen recreate the engine.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, left]);
@@ -359,6 +377,7 @@ export default function Home() {
         status={status}
         connectionText={connection.text}
         events={history}
+        delivery={delivery}
         results={roundHistory}
         stats={hud?.stats ?? EMPTY_STATS}
         saving={saveConfig.isPending}
