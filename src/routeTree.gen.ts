@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicExtensionEventRouteImport } from './routes/api/public/extension.event'
+import { Route as ApiPublicExtensionOcrRouteImport } from './routes/api/public/extension.ocr'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,44 @@ const ApiPublicExtensionEventRoute = ApiPublicExtensionEventRouteImport.update({
   path: '/api/public/extension/event',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicExtensionOcrRoute = ApiPublicExtensionOcrRouteImport.update({
+  id: '/api/public/extension/ocr',
+  path: '/api/public/extension/ocr',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/public/extension/event': typeof ApiPublicExtensionEventRoute
+  '/api/public/extension/ocr': typeof ApiPublicExtensionOcrRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/public/extension/event': typeof ApiPublicExtensionEventRoute
+  '/api/public/extension/ocr': typeof ApiPublicExtensionOcrRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/public/extension/event': typeof ApiPublicExtensionEventRoute
+  '/api/public/extension/ocr': typeof ApiPublicExtensionOcrRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/public/extension/event'
+  fullPaths: '/' | '/api/public/extension/event' | '/api/public/extension/ocr'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/public/extension/event'
-  id: '__root__' | '/' | '/api/public/extension/event'
+  to: '/' | '/api/public/extension/event' | '/api/public/extension/ocr'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/public/extension/event'
+    | '/api/public/extension/ocr'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiPublicExtensionEventRoute: typeof ApiPublicExtensionEventRoute
+  ApiPublicExtensionOcrRoute: typeof ApiPublicExtensionOcrRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +79,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicExtensionEventRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/extension/ocr': {
+      id: '/api/public/extension/ocr'
+      path: '/api/public/extension/ocr'
+      fullPath: '/api/public/extension/ocr'
+      preLoaderRoute: typeof ApiPublicExtensionOcrRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiPublicExtensionEventRoute: ApiPublicExtensionEventRoute,
+  ApiPublicExtensionOcrRoute: ApiPublicExtensionOcrRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -79,6 +79,53 @@ export function detectKeyword(message: string, settings: Pick<ExtensionSettings,
 
 export const cleanUsername = (value: string) => value.replace(/^@+/, "").trim().slice(0, 32);
 
+/** Every normalized name the extension should look for in page text (keywords + gift names + aliases). */
+export function matchTerms(rules: GiftRule[], settings: Pick<ExtensionSettings, "keyword_lula" | "keyword_flavio">) {
+  const terms = new Set<string>([normalize(settings.keyword_lula), normalize(settings.keyword_flavio)]);
+  for (const r of rules.filter((x) => x.enabled)) {
+    [normalize(r.gift_name), normalize(r.gift_id), ...(ALIASES[r.gift_id] ?? [])].forEach((n) => n.length >= 3 && terms.add(n));
+  }
+  return [...terms].filter(Boolean);
+}
+
+const NOISE = /^(\d{1,3}|lv\.?\s*\d+|nivel \d+|top \d+|moderador|moderator|seguindo|following|fa|fan|novo|new)$/i;
+
+/** Guesses the viewer's name from a raw chat/gift row such as "maria_22\nvamos #lula" or "joao: enviou Rosa x5". */
+export function guessUsername(text: string, hint?: string | null) {
+  if (hint && cleanUsername(hint)) return cleanUsername(hint);
+  const lines = text.split(/\n+/).map((l) => l.trim()).filter((l) => l && !NOISE.test(normalize(l)));
+  if (lines.length > 1) return cleanUsername(lines[0].replace(/[:：]\s*$/, ""));
+  const one = lines[0] ?? "";
+  const colon = one.match(/^@?([^\s:：]{2,32})\s*[:：]/);
+  if (colon) return cleanUsername(colon[1]);
+  const sent = one.match(/^@?(\S{2,32})\s+(enviou|mandou|sent|deu|gifted)\b/i);
+  if (sent) return cleanUsername(sent[1]);
+  const at = one.match(/@([\w.]{2,32})/);
+  if (at) return cleanUsername(at[1]);
+  return cleanUsername(one.split(/\s+/)[0] ?? "");
+}
+
+export function parseQuantity(text: string) {
+  const m = text.match(/[x×]\s*(\d{1,4})\b/i);
+  return m ? Math.max(1, Math.min(999, Number(m[1]))) : 1;
+}
+
+/** Classifies raw text read from the page. Keywords win over gifts so "#lula" comments always assign a team. */
+export function classifyRaw(
+  text: string,
+  settings: Pick<ExtensionSettings, "keyword_lula" | "keyword_flavio">,
+  rules: GiftRule[],
+  hint?: string | null,
+): { kind: "chat"; username: string; message: string } | { kind: "gift"; username: string; gift: string; quantity: number } | null {
+  const username = guessUsername(text, hint);
+  if (detectKeyword(text, settings)) return { kind: "chat", username, message: text };
+  // Drop the name so a viewer called "rosa_22" is not read as a Rose gift.
+  const body = username ? text.split(username).join(" ") : text;
+  const rule = matchRule(rules, body);
+  if (rule) return { kind: "gift", username, gift: rule.gift_name, quantity: parseQuantity(body) };
+  return null;
+}
+
 export async function ingestChat(db: Admin, settings: ExtensionSettings, username: string, message: string) {
   const character = detectKeyword(message, settings);
   if (!character) return { assigned: null };
