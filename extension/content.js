@@ -22,16 +22,24 @@
     return parts.join(" > ").replace(/ > (\w+\[data-e2e)/g, " $1");
   }
 
-  // Visible text of an element including image names (gift icons usually carry the gift name in alt/title).
+  // Text of an element piece by piece (one line per text/image), so "name" and "comment" stay separate
+  // even when the site puts them side by side. Gift icons usually carry the gift name in alt/title.
   function fullText(el) {
     if (!el || el.nodeType !== 1) return "";
-    let text = (el.innerText || el.textContent || "").trim();
-    const extra = [...el.querySelectorAll("img[alt], img[title], [aria-label]")].slice(0, 6)
-      .map((i) => i.getAttribute("alt") || i.getAttribute("title") || i.getAttribute("aria-label") || "")
-      .filter((t) => t && t.length < 40 && !text.includes(t));
-    if (el.tagName === "IMG") extra.push(el.alt || el.title || "");
-    return [text, ...extra].filter(Boolean).join("\n").slice(0, 600);
+    const parts = [];
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    for (let n = el; n && parts.length < 30; n = walker.nextNode()) {
+      if (n.nodeType === 3) { const t = n.nodeValue.trim(); if (t) parts.push(t); }
+      else if (n.tagName === "IMG" || n.getAttribute("aria-label")) {
+        const t = n.getAttribute("alt") || n.getAttribute("title") || n.getAttribute("aria-label") || "";
+        if (t && t.length < 40) parts.push(t);
+      } else if (n.tagName === "SCRIPT" || n.tagName === "STYLE") { /* skipped */ }
+    }
+    return parts.join("\n").slice(0, 600);
   }
+
+  const isScroller = (el) => { const o = getComputedStyle(el).overflowY; return (o === "auto" || o === "scroll") && el.scrollHeight > 0; };
+  let pickedRoots = [];
 
   const hasTerm = (text) => {
     const t = norm(text);
@@ -45,8 +53,10 @@
     let best = el;
     for (let cur = el.parentElement, i = 0; cur && cur !== document.body && i < 6; cur = cur.parentElement, i++) {
       // Stop at a list: the parent holds several siblings that look like "best" (same tag + classes).
-      const twins = [...cur.children].filter((c) => c.tagName === best.tagName && c.className === best.className && (c.innerText || "").trim().length > 8);
-      if (twins.length >= 3) break;
+      // Stop at the list itself: a scrolling box, a picked area, or a parent holding several boxes shaped like "best".
+      if (isScroller(cur) || pickedRoots.includes(cur)) break;
+      const twins = [...cur.children].filter((c) => c.tagName === best.tagName && c.className === best.className && c.children.length > 0);
+      if (twins.length >= 2) break;
       const t = (cur.innerText || "").trim();
       if (!t || t.length > 260 || t.split("\n").length > 6) break;
       best = cur;
@@ -122,6 +132,7 @@
     enabled = !s.paused;
     autoMode = s.autoMode !== false;
     const roots = [s.giftMap, s.chatMap].filter(Boolean).map((m) => document.querySelector(m.container)).filter(Boolean);
+    pickedRoots = roots;
     if (autoMode || !roots.length) {
       // Whole page: works even if the site rebuilds its chat panel.
       if (document.body) { markExisting(document.body); observe(document.body); }
