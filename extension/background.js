@@ -85,7 +85,9 @@ async function runOcr(tab, msg) {
   for (const [k, t] of ocrSeen) if (now - t > 180000) ocrSeen.delete(k);
   const first = ocrFirst;
   ocrFirst = false;
-  for (const it of res.items) {
+  // Comments first, so a "#lula" and a gift read in the same frame land on the right team.
+  const items = [...res.items].sort((a, b) => (a.kind === "chat" ? 0 : 1) - (b.kind === "chat" ? 0 : 1));
+  for (const it of items) {
     if (!it.username) continue;
     const key = normKey(it.username + "|" + it.text);
     if (ocrSeen.has(key)) continue;
