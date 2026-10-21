@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<style>
+  body { width: 320px; margin: 0; font: 13px system-ui, sans-serif; background: #0b0d16; color: #f1f5f9; }
+  header { padding: 12px 14px; border-bottom: 1px solid #ffffff1f; }
+  header b { color: #ff2d8a; letter-spacing: .08em; }
+  section { padding: 10px 14px; border-bottom: 1px solid #ffffff14; }
+  label { display: block; font-size: 11px; color: #94a3b8; margin: 6px 0 3px; letter-spacing: .06em; }
+  input { width: 100%; box-sizing: border-box; padding: 7px 8px; border-radius: 7px; border: 1px solid #ffffff2a; background: #141827; color: #fff; }
+  button { width: 100%; margin-top: 7px; padding: 8px; border-radius: 8px; border: 1px solid #ff2d8a; background: #ff2d8a22; color: #fff; font-weight: 700; cursor: pointer; letter-spacing: .04em; }
+  button.alt { border-color: #00e5ff; background: #00e5ff1a; }
+  .row { display: flex; gap: 6px; } .row button { flex: 1; }
+  #status { margin-top: 6px; font-size: 12px; }
+  .ok { color: #4ade80; } .bad { color: #f87171; }
+  #logs { max-height: 150px; overflow: auto; font-size: 11px; color: #cbd5e1; }
+  #logs div { padding: 3px 0; border-bottom: 1px dashed #ffffff12; }
+  small { color: #64748b; }
+</style>
+</head>
+<body>
+  <header><b>⚔️ BRASIL FIGHT ARENA</b><br /><small>Conector de presentes e comentários</small></header>
+  <section>
+    <label>ENDEREÇO DO JOGO</label><input id="server" placeholder="https://seu-jogo.lovable.app" />
+    <label>CÓDIGO DE CONEXÃO</label><input id="token" placeholder="bfa_..." />
+    <button id="save">CONECTAR AO PAINEL</button>
+    <div id="status"></div>
+  </section>
+  <section>
+    <small>Abra a página da sua live nesta aba e escolha as áreas:</small>
+    <button id="pickGift">🎁 ESCOLHER ÁREA DOS PRESENTES</button>
+    <button id="pickChat" class="alt">💬 ESCOLHER ÁREA DO CHAT</button>
+    <div id="areas" style="margin-top:6px;font-size:12px"></div>
+    <div class="row"><button id="pause" class="alt">PAUSAR</button><button id="reset" class="alt">LIMPAR ÁREAS</button></div>
+  </section>
+  <section>
+    <label>ATIVIDADE <span id="stats"></span></label>
+    <div id="logs"><small>Nada enviado ainda.</small></div>
+  </section>
+  <script src="popup.js"></script>
+</body>
+</html>
