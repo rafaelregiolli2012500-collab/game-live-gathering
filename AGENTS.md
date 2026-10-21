@@ -13,3 +13,5 @@
 - Game backend lives in src/lib/live.functions.ts (server functions using the admin client); tables have no public policies except SELECT on live_events, which feeds realtime gift delivery.
 - Game-specific UI primitives live in src/components/game-ui (base-ui based); keep src/components/ui as the stock shadcn set.
 - tsconfig has noUncheckedIndexedAccess off because the imported game code relies on indexed access.
+- Chrome extension source lives in extension/; after editing it, re-zip into public/brasil-fight-conector.zip (the panel downloads that file).
+- Extension traffic enters only via src/routes/api/public/extension.event.ts, authenticated by the token in extension_settings; gift/keyword logic is in src/lib/gift-bridge.server.ts (covered by src/test/gift-bridge.test.ts).
