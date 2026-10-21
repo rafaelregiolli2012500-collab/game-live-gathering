@@ -10,33 +10,43 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPublicExtensionEventRouteImport } from './routes/api/public/extension.event'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicExtensionEventRoute = ApiPublicExtensionEventRouteImport.update({
+  id: '/api/public/extension/event',
+  path: '/api/public/extension/event',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/public/extension/event': typeof ApiPublicExtensionEventRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/public/extension/event': typeof ApiPublicExtensionEventRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/public/extension/event': typeof ApiPublicExtensionEventRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/api/public/extension/event'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/api/public/extension/event'
+  id: '__root__' | '/' | '/api/public/extension/event'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiPublicExtensionEventRoute: typeof ApiPublicExtensionEventRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +58,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/extension/event': {
+      id: '/api/public/extension/event'
+      path: '/api/public/extension/event'
+      fullPath: '/api/public/extension/event'
+      preLoaderRoute: typeof ApiPublicExtensionEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiPublicExtensionEventRoute: ApiPublicExtensionEventRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
