@@ -119,8 +119,10 @@ export function classifyRaw(
 ): { kind: "chat"; username: string; message: string } | { kind: "gift"; username: string; gift: string; quantity: number } | null {
   const username = guessUsername(text, hint);
   if (detectKeyword(text, settings)) return { kind: "chat", username, message: text };
-  const rule = matchRule(rules, text);
-  if (rule) return { kind: "gift", username, gift: rule.gift_name, quantity: parseQuantity(text) };
+  // Drop the name so a viewer called "rosa_22" is not read as a Rose gift.
+  const body = username ? text.replace(username, " ") : text;
+  const rule = matchRule(rules, body);
+  if (rule) return { kind: "gift", username, gift: rule.gift_name, quantity: parseQuantity(body) };
   return null;
 }
 
