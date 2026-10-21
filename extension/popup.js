@@ -6,7 +6,9 @@ async function activeTab() {
 }
 async function toTab(msg) {
   const tab = await activeTab();
-  try { return await chrome.tabs.sendMessage(tab.id, msg); } catch { return null; }
+  // Status and area picking talk to the main page; re-attach reaches every frame.
+  const opts = msg.kind === "reattach" ? undefined : { frameId: 0 };
+  try { return await chrome.tabs.sendMessage(tab.id, msg, opts); } catch { return null; }
 }
 const ago = (t) => { const s = Math.round((Date.now() - t) / 1000); return s < 60 ? `${s}s` : `${Math.round(s / 60)}min`; };
 
