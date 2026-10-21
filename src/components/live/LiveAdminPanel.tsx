@@ -8,6 +8,7 @@ import { Input } from "@/components/game-ui/input";
 import type { CombatStats } from "@/game/types";
 import { giftIcon, SPECIAL_MOVES } from "@/lib/live";
 import type { DemoGiftCreate, GiftEvent, LiveConfig, LiveStatus, RoundResult, SpecialMove } from "@/lib/live";
+import type { GiftDelivery } from "@/lib/gift-feed";
 
 interface LiveAdminPanelProps {
   open: boolean;
@@ -17,6 +18,7 @@ interface LiveAdminPanelProps {
   stats: CombatStats;
   onCheckConnection: () => void;
   events: GiftEvent[];
+  delivery: Record<string, GiftDelivery>;
   results: RoundResult[];
   saving: boolean;
   onClose: () => void;
@@ -38,7 +40,7 @@ export interface ArenaControls {
   onVolume: (value: number) => void;
 }
 
-export function LiveAdminPanel({ open, config, status, connectionText, stats, onCheckConnection, events, results, saving, onClose, onSave, onSimulate, arena }: LiveAdminPanelProps) {
+export function LiveAdminPanel({ open, config, status, connectionText, stats, onCheckConnection, events, delivery, results, saving, onClose, onSave, onSimulate, arena }: LiveAdminPanelProps) {
   const [draft, setDraft] = useState(config);
   const [giftId, setGiftId] = useState(config.rules[0]?.gift_id ?? "rose");
   const [username, setUsername] = useState("demo_viewer");
@@ -56,7 +58,7 @@ export function LiveAdminPanel({ open, config, status, connectionText, stats, on
       <aside className="admin-panel">
         <div className="admin-header"><div><Badge data-testid="admin-panel-badge"><Settings2 size={13} /> CONTROLE DA ARENA</Badge><h2 data-testid="admin-panel-title">LIVE COMMAND</h2><p data-testid="admin-panel-description">Configure presentes, regras de dano e o ritmo da transmissão sem tocar no loop do Canvas.</p></div><button type="button" className="modal-close" data-testid="admin-panel-close-button" onClick={onClose}><X /></button></div>
         <div className="admin-tabs" role="tablist"><button type="button" role="tab" aria-selected={tab === "config"} data-testid="tab-config" onClick={() => setTab("config")}>CONFIGURAÇÕES</button><button type="button" role="tab" aria-selected={tab === "extension"} data-testid="tab-extension" onClick={() => setTab("extension")}>PAINEL E EXTENSÃO</button></div>
-        {tab === "extension" ? <ExtensionPanel /> : <>
+        {tab === "extension" ? <ExtensionPanel delivery={delivery} inFight={arena.inFight} onStart={arena.onStart} /> : <>
         <section className="admin-status-card" data-testid="live-connection-card"><div className="admin-section-title"><Radio size={15} /> ESTADO DO LIVE</div><strong data-testid="live-connection-state">{connectionText}</strong><span data-testid="live-connection-message">{status.message}</span><small data-testid="live-connection-policy">Conexão real nunca é simulada no navegador; o provedor futuro entra somente no backend.</small><button type="button" className="check-connection-button" data-testid="check-connection-button" onClick={onCheckConnection}>VERIFICAR CONEXÃO</button></section>
 
         <section className="admin-section" data-testid="arena-controls-section"><div className="admin-section-title"><Activity size={15} /> CONTROLE DA RODADA</div><div className="arena-controls"><button type="button" data-testid="admin-start-button" onClick={arena.onStart}>{arena.inFight ? "NOVA LUTA" : "INICIAR LUTA"}</button><button type="button" data-testid="admin-pause-button" disabled={!arena.inFight} onClick={arena.onTogglePause}>{arena.paused ? "RETOMAR" : "PAUSAR"}</button><button type="button" data-testid="admin-restart-button" onClick={arena.onRestart}>REINICIAR RODADA</button><button type="button" data-testid="admin-fighter-lula-button" onClick={() => arena.onCharacter("lula")}>{arena.character === "lula" ? "● " : ""}P1 LULA</button><button type="button" data-testid="admin-fighter-flavio-button" onClick={() => arena.onCharacter("flavio")}>{arena.character === "flavio" ? "● " : ""}P1 FLÁVIO</button></div><div className="arena-controls" style={{ marginTop: 7 }}><button type="button" data-testid="admin-heal-lula-button" disabled={!arena.inFight} onClick={() => arena.onAdjustHp("lula", 50)}>LULA +50 HP</button><button type="button" data-testid="admin-damage-lula-button" disabled={!arena.inFight} onClick={() => arena.onAdjustHp("lula", -50)}>LULA −50 HP</button><button type="button" data-testid="admin-heal-flavio-button" disabled={!arena.inFight} onClick={() => arena.onAdjustHp("flavio", 50)}>FLÁVIO +50 HP</button><button type="button" data-testid="admin-damage-flavio-button" disabled={!arena.inFight} onClick={() => arena.onAdjustHp("flavio", -50)}>FLÁVIO −50 HP</button></div><label className="admin-volume">VOLUME<input data-testid="admin-volume-slider" type="range" min="0" max="1" step="0.05" value={arena.volume} onChange={(event) => arena.onVolume(Number(event.target.value))} /><span data-testid="admin-volume-value">{Math.round(arena.volume * 100)}%</span></label></section>

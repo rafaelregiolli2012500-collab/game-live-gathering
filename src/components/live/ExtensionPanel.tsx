@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Download, Hash, Plug, RefreshCw, Trash2 } from "lucide-react";
+import { Copy, Download, Gift, Hash, Play, Plug, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { clearViewerTeams, getExtensionPanel, updateExtensionSettings, type ExtensionPanelData } from "@/lib/extension.functions";
+import { Button } from "@/components/game-ui/button";
+import { giftEffectLabel, giftIcon } from "@/lib/live";
+import type { GiftDelivery } from "@/lib/gift-feed";
 
 const ZIP = "/brasil-fight-conector.zip";
 
@@ -28,14 +31,17 @@ function lastSeen(at: string | null) {
   return { on: sec < 120, text: sec < 120 ? `Extensão ativa (há ${sec}s)` : `Último sinal há ${Math.round(sec / 60)} min` };
 }
 
-export function ExtensionPanel() {
+export function ExtensionPanel({ delivery, inFight, onStart }: { delivery: Record<string, GiftDelivery>; inFight: boolean; onStart: () => void }) {
   const qc = useQueryClient();
   const panel = useQuery({ queryKey: ["extension-panel"], queryFn: () => getExtensionPanel(), refetchInterval: 4000 });
   const [form, setForm] = useState<Pick<ExtensionPanelData, "keyword_lula" | "keyword_flavio" | "default_character"> | null>(null);
   useEffect(() => { if (panel.data && !form) setForm({ keyword_lula: panel.data.keyword_lula, keyword_flavio: panel.data.keyword_flavio, default_character: panel.data.default_character }); }, [panel.data, form]);
 
   const save = useMutation({
-    mutationFn: (regenerate_token: boolean) => updateExtensionSettings({ data: { ...form!, regenerate_token } }),
+    mutationFn: (regenerate_token: boolean) => {
+      if (!form) throw new Error("Aguarde as configurações");
+      return updateExtensionSettings({ data: { ...form, regenerate_token } });
+    },
     onSuccess: (_r, regen) => { toast.success(regen ? "Novo código gerado — atualize na extensão" : "Palavras-chave salvas"); qc.invalidateQueries({ queryKey: ["extension-panel"] }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar"),
   });
@@ -82,6 +88,21 @@ export function ExtensionPanel() {
         )}
         <div className="arena-controls" style={{ marginTop: 8 }}><button type="button" data-testid="save-keywords-button" disabled={!form || save.isPending} onClick={() => save.mutate(false)}>SALVAR PALAVRAS-CHAVE</button><button type="button" onClick={() => clear.mutate()}><Trash2 size={12} /> ZERAR TIMES</button></div>
         <small className="admin-persistence-note">Quem comentar {form?.keyword_lula ?? "#lula"} ou {form?.keyword_flavio ?? "#flavio"} entra naquele time; os presentes dessa pessoa disparam o especial a favor do personagem escolhido. A última palavra enviada vale.</small>
+      </section>
+
+      <section className="admin-section" data-testid="extension-gifts-section">
+        <div className="admin-section-title"><Gift size={15} /> PRESENTES DA LIVE <small>{data?.gifts.length ?? 0}</small></div>
+        {!inFight && <Button variant="outline" onClick={onStart} data-testid="extension-start-fight"><Play size={13} /> INICIAR LUTA</Button>}
+        {panel.isError && <p className="text-destructive">Não foi possível atualizar os presentes.</p>}
+        <div className="admin-event-list">
+          {!data?.gifts.length ? <span>Nenhum presente reconhecido ainda.</span> : data.gifts.map((event) => (
+            <div key={event.event_id} data-testid={`extension-gift-${event.sequence}`} className="grid gap-1 border-b border-border py-3 text-foreground">
+              <strong className="break-words">@{event.username} · {giftIcon(event.gift_id)} {event.gift_name} ×{event.quantity}</strong>
+              <small className="text-muted-foreground">{event.benefited_character === "lula" ? "LULA" : "FLÁVIO"} · {giftEffectLabel(event)}</small>
+              <small className="text-muted-foreground">{delivery[event.event_id] === "completed" ? "Aplicado na luta" : delivery[event.event_id] === "processing" ? "Em execução na luta" : delivery[event.event_id] === "queued" ? "Na fila da luta" : "Registrado no painel"}</small>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="admin-section" data-testid="viewer-teams-section">

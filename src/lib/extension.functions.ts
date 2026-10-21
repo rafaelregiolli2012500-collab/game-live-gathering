@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { GiftEvent } from "@/lib/live";
 
 export interface ExtensionPanelData {
   token: string;
@@ -8,6 +9,7 @@ export interface ExtensionPanelData {
   default_character: "none" | "lula" | "flavio";
   last_seen_at: string | null;
   teams: { username: string; character: "lula" | "flavio"; source_text: string | null; updated_at: string }[];
+  gifts: GiftEvent[];
 }
 
 export const getExtensionPanel = createServerFn({ method: "GET" }).handler(async (): Promise<ExtensionPanelData> => {
@@ -15,7 +17,10 @@ export const getExtensionPanel = createServerFn({ method: "GET" }).handler(async
   const db = await bridge.getAdmin();
   const s = await bridge.readSettings(db);
   const { data } = await db.from("viewer_teams").select("username, character, source_text, updated_at").eq("game_id", bridge.GAME_ID).order("updated_at", { ascending: false }).limit(30);
-  return { token: s.token, keyword_lula: s.keyword_lula, keyword_flavio: s.keyword_flavio, default_character: s.default_character, last_seen_at: s.last_seen_at, teams: (data ?? []) as ExtensionPanelData["teams"] };
+  const { data: rows, error } = await db.from("live_events").select("id, sequence, data").eq("game_id", bridge.GAME_ID).eq("data->>source", "provider").order("sequence", { ascending: false }).limit(30);
+  if (error) throw new Error("Não foi possível ler os presentes recebidos");
+  const gifts = (rows ?? []).map((row) => ({ ...(row.data as unknown as GiftEvent), id: row.id, sequence: row.sequence }));
+  return { token: s.token, keyword_lula: s.keyword_lula, keyword_flavio: s.keyword_flavio, default_character: s.default_character, last_seen_at: s.last_seen_at, teams: (data ?? []) as ExtensionPanelData["teams"], gifts };
 });
 
 export const updateExtensionSettings = createServerFn({ method: "POST" })
