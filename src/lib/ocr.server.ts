@@ -44,7 +44,7 @@ export async function readLiveImage(dataUrl: string, giftNames: string[], keywor
   const result = streamText({
     model: provider.responses("openai/gpt-6-astra"),
     output: Output.object({ schema }),
-    abortSignal: signal,
+    ...(signal ? { abortSignal: signal } : {}),
     maxRetries: 0,
     messages: [
       {
