@@ -152,7 +152,6 @@
     const { giftMap, chatMap, paused } = await chrome.storage.local.get(["giftMap", "chatMap", "paused"]);
     enabled = !paused;
 
-    if (giftMap && !watch(giftMap, () => {}, () => {})) retry();
     if (giftMap) {
       const sent = new WeakMap();
       let rowSeq = 0;
@@ -169,16 +168,15 @@
         if (!rowIds.has(row)) rowIds.set(row, Date.now().toString(36) + "-" + ++rowSeq);
         send({ type: "gift", username, gift: gift.slice(0, 120), quantity: qty - prev, event_id: rowIds.get(row) + "-" + qty });
       };
-      observers.forEach((o) => o.disconnect());
-      observers = [];
-      watch(giftMap, (row) => readGift(row, false), (row, initial) => readGift(row, initial));
+      if (!watch(giftMap, (row) => readGift(row, false), (row, initial) => readGift(row, initial))) retry();
     }
     if (chatMap) {
-      watch(chatMap, (row) => {
+      const ok = watch(chatMap, (row) => {
         const username = textOf(field(row, chatMap.username)).split("\n")[0];
         const message = textOf(field(row, chatMap.message));
         if (username && message) send({ type: "chat", username, message: message.slice(0, 500) });
       });
+      if (!ok) retry();
     }
   }
 
