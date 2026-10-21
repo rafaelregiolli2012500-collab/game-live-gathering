@@ -44,6 +44,9 @@
     if (!el) return null;
     let best = el;
     for (let cur = el.parentElement, i = 0; cur && cur !== document.body && i < 6; cur = cur.parentElement, i++) {
+      // Stop at a list: the parent holds several siblings that look like "best" (same tag + classes).
+      const twins = [...cur.children].filter((c) => c.tagName === best.tagName && c.className === best.className).length;
+      if (twins >= 2) break;
       const t = (cur.innerText || "").trim();
       if (!t || t.length > 260 || t.split("\n").length > 6) break;
       best = cur;
@@ -56,6 +59,7 @@
   const recent = new Map(); // text -> time, to drop repeated re-renders of the same message
   const rowQty = new WeakMap(); // row -> highest quantity already sent (gift combos "x1 → x5")
   const rowIds = new WeakMap();
+  const rowText = new WeakMap();
   let seq = 0;
 
   function report(row, initial) {
@@ -71,7 +75,10 @@
       if (qty <= prev) return;
       rowQty.set(row, qty);
     } else {
-      if (recent.has(key) && now - recent.get(key) < 15000) return;
+      const lastText = rowText.get(row);
+      if (lastText === key) return; // same row, nothing new
+      rowText.set(row, key);
+      if (recent.has(key) && now - recent.get(key) < 2000) return; // same message re-rendered in a new box
     }
     recent.set(key, now);
     if (recent.size > 400) for (const [k, t] of recent) if (now - t > 60000) recent.delete(k);
