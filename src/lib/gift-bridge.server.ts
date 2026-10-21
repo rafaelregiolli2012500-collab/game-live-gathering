@@ -107,7 +107,7 @@ export async function ingestGift(
   const target: CharacterId = rule.target_character === "opponent" ? (benefited === "lula" ? "flavio" : "lula") : rule.target_character;
   const eventId = `ext-${input.event_id}`.slice(0, 120);
   const existing = await db.from("live_events").select("id, sequence, data").eq("game_id", GAME_ID).eq("event_id", eventId).maybeSingle();
-  if (existing.data) return { ok: true, event: { ...(existing.data.data as GiftEvent), id: existing.data.id, sequence: existing.data.sequence } };
+  if (existing.data) return { ok: true, event: { ...(existing.data.data as unknown as GiftEvent), id: existing.data.id, sequence: existing.data.sequence } };
   const payload = {
     game_id: GAME_ID,
     event_id: eventId,
@@ -131,5 +131,5 @@ export async function ingestGift(
   };
   const { data: row, error } = await db.from("live_events").insert({ game_id: GAME_ID, event_id: eventId, data: payload as never }).select("id, sequence, data").single();
   if (error) throw new Error(error.message);
-  return { ok: true, event: { ...(row.data as GiftEvent), id: row.id, sequence: row.sequence } };
+  return { ok: true, event: { ...(row.data as unknown as GiftEvent), id: row.id, sequence: row.sequence } };
 }
