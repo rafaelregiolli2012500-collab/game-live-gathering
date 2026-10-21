@@ -120,7 +120,7 @@ export function classifyRaw(
   const username = guessUsername(text, hint);
   if (detectKeyword(text, settings)) return { kind: "chat", username, message: text };
   // Drop the name so a viewer called "rosa_22" is not read as a Rose gift.
-  const body = username ? text.replace(username, " ") : text;
+  const body = username ? text.split(username).join(" ") : text;
   const rule = matchRule(rules, body);
   if (rule) return { kind: "gift", username, gift: rule.gift_name, quantity: parseQuantity(body) };
   return null;
