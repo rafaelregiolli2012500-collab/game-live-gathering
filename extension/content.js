@@ -128,12 +128,13 @@
   async function attach() {
     observers.forEach((o) => o.obs.disconnect());
     observers = [];
-    const s = await chrome.storage.local.get(["giftMap", "chatMap", "paused", "autoMode"]);
+    const s = await chrome.storage.local.get(["giftMap", "chatMap", "paused", "autoMode", "ocrMode"]);
     enabled = !s.paused;
     autoMode = s.autoMode !== false;
     const roots = [s.giftMap, s.chatMap].filter(Boolean).map((m) => document.querySelector(m.container)).filter(Boolean);
     pickedRoots = roots;
-    if (autoMode || !roots.length) {
+    if (s.ocrMode) return; // image reading is on: it sends everything, text reading would double the gifts
+    if (autoMode) {
       // Whole page: works even if the site rebuilds its chat panel.
       if (document.body) { markExisting(document.body); observe(document.body); }
     } else {
@@ -232,5 +233,9 @@
   refreshTerms().then(attach);
   setInterval(refreshTerms, 60000);
   // Sites rebuild their panels constantly: re-attach when a watched root disappears.
-  setInterval(() => { if (observers.some((o) => !o.root.isConnected) || (!observers.length && document.body)) attach(); }, 3000);
+  setInterval(async () => {
+    const { ocrMode, autoMode: auto, giftMap, chatMap } = await chrome.storage.local.get(["ocrMode", "autoMode", "giftMap", "chatMap"]);
+    const wanted = !ocrMode && (auto !== false || giftMap || chatMap);
+    if (observers.some((o) => !o.root.isConnected) || (wanted && !observers.length) || (!wanted && observers.length)) attach();
+  }, 3000);
 })();

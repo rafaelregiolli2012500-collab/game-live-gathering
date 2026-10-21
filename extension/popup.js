@@ -26,7 +26,7 @@ async function render() {
   const area = (m, found) => (m ? (found ? '<span class="ok">ativa</span>' : '<span class="bad">salva, não encontrada nesta aba</span>') : "não escolhida");
   $("areas").innerHTML = !live
     ? '<span class="bad">A extensão não está ativa nesta aba. Recarregue a página da live (F5).</span>'
-    : `Leitura: ${live.observing ? '<span class="ok">lendo a página</span>' : '<span class="bad">parada</span>'}${s.ocrMode ? (s.ocrLast ? ` · OCR ${ago(s.ocrLast.at)} atrás (${s.ocrLast.ok ? s.ocrLast.rows + " linhas" : "falhou"})` : " · OCR aguardando") : ""}<br/>` +
+    : `Leitura: ${s.ocrMode ? '<span class="ok">por imagem</span>' : live.observing ? '<span class="ok">lendo a página</span>' : '<span class="bad">parada</span>'}${s.ocrMode ? (s.ocrLast ? ` · OCR ${ago(s.ocrLast.at)} atrás (${s.ocrLast.ok ? s.ocrLast.rows + " linhas" : "falhou"})` : " · OCR aguardando") : ""}<br/>` +
       `Chat: ${area(s.chatMap, live.chat)} · Presentes: ${area(s.giftMap, live.gift)}${s.ocrMap ? ` · Imagem: ${area(s.ocrMap, live.ocr)}` : ""}`;
 }
 
@@ -43,7 +43,7 @@ $("pickGift").onclick = pick("gift");
 $("pickChat").onclick = pick("chat");
 $("pickOcr").onclick = pick("ocr");
 $("autoMode").onchange = async (e) => { await chrome.storage.local.set({ autoMode: e.target.checked }); await toTab({ kind: "reattach" }); render(); };
-$("ocrMode").onchange = async (e) => { await chrome.storage.local.set({ ocrMode: e.target.checked }); await chrome.runtime.sendMessage({ kind: "ocr-reset" }); render(); };
+$("ocrMode").onchange = async (e) => { await chrome.storage.local.set({ ocrMode: e.target.checked }); await chrome.runtime.sendMessage({ kind: "ocr-reset" }); await toTab({ kind: "reattach" }); render(); };
 $("pause").onclick = async () => { const { paused } = await chrome.storage.local.get("paused"); await chrome.storage.local.set({ paused: !paused }); await toTab({ kind: "reattach" }); render(); };
 $("reset").onclick = async () => { await chrome.storage.local.remove(["giftMap", "chatMap", "ocrMap"]); await toTab({ kind: "reattach" }); render(); };
 
