@@ -65,9 +65,9 @@ export function ExtensionPanel() {
           <li>Baixe e descompacte o arquivo.</li>
           <li>No Chrome, abra <b>chrome://extensions</b> e ative o <b>Modo do desenvolvedor</b>.</li>
           <li>Clique em <b>Carregar sem compactação</b> e escolha a pasta descompactada.</li>
-          <li>Abra a página da sua live, clique no ícone da extensão, cole o endereço e o código e clique em <b>Conectar ao painel</b>.</li>
-          <li>Clique em <b>Escolher área dos presentes</b> e marque: a lista, o nome do usuário, o presente e a quantidade.</li>
-          <li>Clique em <b>Escolher área do chat</b> e marque: a lista, o nome do usuário e o comentário.</li>
+          <li>Abra a página da sua live (recarregue com F5 depois de instalar), clique no ícone da extensão, cole o endereço e o código e clique em <b>Conectar ao painel</b>.</li>
+          <li>Pronto: a <b>leitura automática</b> já procura #lula, #flavio e os nomes dos presentes em toda a página. Tudo que for reconhecido aparece em <b>Atividade</b>.</li>
+          <li>Se nada aparecer, ligue <b>Leitura por imagem (OCR)</b> e escolha a área do chat com 1 clique. A aba da live precisa ficar visível na tela.</li>
         </ol>
       </section>
 
