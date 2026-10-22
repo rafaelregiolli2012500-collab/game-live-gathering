@@ -233,11 +233,10 @@ export async function resolveGiftRow(
     const rule = rules.find((r) => r.enabled && r.gift_id === known.gift_id);
     return rule ? { rule } : { reason: `Imagem de presente ${known.guess ? `"${known.guess}" ` : ""}sem personagem definido: escolha o presente no painel` };
   }
-  const image = input.image_data || (input.image_url?.startsWith("http") ? input.image_url : null);
   if (!input.image_data) return { need_image: true };
   let found: { gift_id: string | null; guess: string | null } = { gift_id: null, guess: null };
   try {
-    found = await identify(image!, rules.filter((r) => r.enabled));
+    found = await identify(input.image_data, rules.filter((r) => r.enabled));
   } catch (e) {
     return { reason: "Não consegui reconhecer a imagem do presente agora: " + (e instanceof Error ? e.message : String(e)) };
   }
