@@ -180,3 +180,71 @@ export async function ingestGift(
   if (error) throw new Error(error.message);
   return { ok: true, event: { ...(row.data as unknown as GiftEvent), id: row.id, sequence: row.sequence } };
 }
+
+/** Stable key for a gift icon: CDN URLs carry changing signatures, so only the file path counts. */
+export function imageKey(url: string) {
+  const raw = (url || "").trim();
+  if (!raw) return "";
+  if (raw.startsWith("data:")) {
+    let h = 0;
+    for (let i = 0; i < raw.length; i++) h = (h * 31 + raw.charCodeAt(i)) | 0;
+    return "data-" + (h >>> 0).toString(36) + "-" + raw.length;
+  }
+  try {
+    const u = new URL(raw);
+    const file = u.pathname.replace(/~[^/]*$/, "").replace(/\.(png|webp|jpe?g|gif|image)$/i, "");
+    return (file.split("/").filter(Boolean).slice(-2).join("/") || u.pathname).slice(-160);
+  } catch {
+    return raw.split(/[?#]/)[0].slice(-160);
+  }
+}
+
+export async function logActivity(db: Admin, kind: string, ok: boolean, text: string) {
+  await db.from("extension_activity").insert({ game_id: GAME_ID, kind, ok, text: text.slice(0, 300) });
+}
+
+export interface GiftRowInput {
+  username: string;
+  image_url?: string | null;
+  image_data?: string | null;
+  text?: string | null;
+  quantity: number;
+  event_id: string;
+}
+
+/**
+ * Finds which gift a picked gift row shows: first by its text/alt, then by the icon already learnt,
+ * then (once) by asking the AI to recognise the icon. Unknown icons wait in the panel for manual mapping.
+ */
+export async function resolveGiftRow(
+  db: Admin,
+  rules: GiftRule[],
+  input: GiftRowInput,
+  identify: (image: string, rules: GiftRule[]) => Promise<{ gift_id: string | null; guess: string | null }>,
+): Promise<{ rule: GiftRule } | { need_image: true } | { reason: string }> {
+  const user = cleanUsername(input.username);
+  const body = user && input.text ? input.text.split(user).join(" ") : input.text ?? "";
+  const byText = body ? matchRule(rules, body) : undefined;
+  if (byText) return { rule: byText };
+  const key = input.image_url ? imageKey(input.image_url) : input.image_data ? imageKey(input.image_data) : "";
+  if (!key) return { reason: "Presente sem imagem nem nome reconhecível" };
+  const { data: known } = await db.from("gift_images").select("gift_id, guess").eq("game_id", GAME_ID).eq("image_key", key).maybeSingle();
+  if (known) {
+    const rule = rules.find((r) => r.enabled && r.gift_id === known.gift_id);
+    return rule ? { rule } : { reason: `Imagem de presente ${known.guess ? `"${known.guess}" ` : ""}sem personagem definido: escolha o presente no painel` };
+  }
+  const image = input.image_data || (input.image_url?.startsWith("http") ? input.image_url : null);
+  if (!input.image_data) return { need_image: true };
+  let found: { gift_id: string | null; guess: string | null } = { gift_id: null, guess: null };
+  try {
+    found = await identify(image!, rules.filter((r) => r.enabled));
+  } catch (e) {
+    return { reason: "Não consegui reconhecer a imagem do presente agora: " + (e instanceof Error ? e.message : String(e)) };
+  }
+  const rule = rules.find((r) => r.enabled && r.gift_id === found.gift_id);
+  await db.from("gift_images").upsert(
+    { game_id: GAME_ID, image_key: key, image_url: input.image_url ?? null, preview: input.image_data.slice(0, 60000), gift_id: rule?.gift_id ?? null, source: "ai", guess: found.guess, updated_at: new Date().toISOString() },
+    { onConflict: "game_id,image_key" },
+  );
+  return rule ? { rule } : { reason: `Presente ${found.guess ? `"${found.guess}" ` : ""}não está no mapa de presentes: escolha no painel` };
+}
