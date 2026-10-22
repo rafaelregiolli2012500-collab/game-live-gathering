@@ -12,6 +12,16 @@ const bodySchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("chat"), username: z.string().min(1).max(80), message: z.string().min(1).max(500) }),
   // Raw text read from the page (DOM text or OCR); the server decides if it is a comment or a gift.
   z.object({ type: z.literal("raw"), text: z.string().min(1).max(600), username: z.string().max(80).nullish(), quantity: z.number().int().min(1).max(999).nullish(), event_id: z.string().min(1).max(100) }),
+  // A gift row from the picked gift area: name + gift icon + quantity read from the places the streamer chose.
+  z.object({
+    type: z.literal("gift_row"),
+    username: z.string().max(80),
+    image_url: z.string().max(2000).nullish(),
+    image_data: z.string().startsWith("data:image/").max(200_000).nullish(),
+    text: z.string().max(600).nullish(),
+    quantity: z.number().int().min(1).max(999),
+    event_id: z.string().min(1).max(100),
+  }),
   z.object({ type: z.literal("ping") }),
 ]);
 
@@ -47,7 +57,20 @@ export const Route = createFileRoute("/api/public/extension/event")({
           }
           gift = { username: found.username, gift: found.gift, quantity: body.quantity ?? found.quantity, event_id: body.event_id };
         }
+        if (body.type === "gift_row") {
+          const config = await bridge.readConfig(db);
+          const { identifyGiftImage } = await import("@/lib/ocr.server");
+          const resolved = await bridge.resolveGiftRow(db, config.rules, body, identifyGiftImage);
+          const who = bridge.cleanUsername(body.username) || "anonimo";
+          if ("need_image" in resolved) return json({ ok: false, kind: "gift", need_image: true, username: who });
+          if ("reason" in resolved) {
+            await bridge.logActivity(db, "gift", false, `@${who} ×${body.quantity} · ${resolved.reason}`);
+            return json({ ok: false, kind: "gift", username: who, reason: resolved.reason });
+          }
+          gift = { username: who, gift: resolved.rule.gift_name, quantity: body.quantity, event_id: body.event_id };
+        }
         const result = await bridge.ingestGift(db, settings, gift);
+        await bridge.logActivity(db, "gift", result.ok, result.ok ? `@${gift.username} · ${result.event.gift_name} ×${gift.quantity} → ${result.event.benefited_character.toUpperCase()}` : `@${gift.username} · ${gift.gift} ×${gift.quantity} · ${result.reason}`);
         return json(result.ok ? { ok: true, kind: "gift", username: gift.username, gift: result.event.gift_name, quantity: gift.quantity, character: result.event.benefited_character } : { ...result, kind: "gift", username: gift.username });
       },
     },
