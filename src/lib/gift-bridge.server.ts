@@ -106,24 +106,50 @@ export function guessUsername(text: string, hint?: string | null) {
 }
 
 export function parseQuantity(text: string) {
-  const m = text.match(/[x×]\s*(\d{1,4})\b/i);
-  return m ? Math.max(1, Math.min(999, Number(m[1]))) : 1;
+  const t = text || "";
+  // x5 / ×5 / x 12
+  let m = t.match(/[x×]\s*(\d{1,4})\b/i);
+  if (m) return Math.max(1, Math.min(999, Number(m[1])));
+  // 5x / 12 ×
+  m = t.match(/\b(\d{1,4})\s*[x×]\b/i);
+  if (m) return Math.max(1, Math.min(999, Number(m[1])));
+  // Isolated combo number on its own line (gift toast UIs)
+  m = t.match(/(?:^|\n)\s*(\d{1,4})\s*(?:\n|$)/);
+  if (m) return Math.max(1, Math.min(999, Number(m[1])));
+  return 1;
 }
 
-/** Classifies raw text read from the page. Keywords win over gifts so "#lula" comments always assign a team. */
+/** Classifies raw text read from the page. Keywords win over gifts so "#lula" comments always assign a team.
+ *  When preferGift is true (row from the extension gift area), try gift matching first. */
 export function classifyRaw(
   text: string,
   settings: Pick<ExtensionSettings, "keyword_lula" | "keyword_flavio">,
   rules: GiftRule[],
   hint?: string | null,
+  preferGift?: boolean,
 ): { kind: "chat"; username: string; message: string } | { kind: "gift"; username: string; gift: string; quantity: number } | null {
   const username = guessUsername(text, hint);
-  if (detectKeyword(text, settings)) return { kind: "chat", username, message: text };
   // Drop the name so a viewer called "rosa_22" is not read as a Rose gift.
-  const body = username ? text.split(username).join(" ") : text;
-  const rule = matchRule(rules, body);
-  if (rule) return { kind: "gift", username, gift: rule.gift_name, quantity: parseQuantity(body) };
-  return null;
+  const escaped = username ? username.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : "";
+  const body = escaped ? text.split(new RegExp(escaped, "gi")).join(" ") : text;
+
+  const tryGift = () => {
+    const rule = matchRule(rules, body) ?? matchRule(rules, text);
+    if (!rule) return null;
+    const quantity = parseQuantity(body) || parseQuantity(text) || 1;
+    return { kind: "gift" as const, username, gift: rule.gift_name, quantity };
+  };
+
+  if (preferGift) {
+    const gift = tryGift();
+    if (gift) return gift;
+    if (detectKeyword(text, settings)) return { kind: "chat", username, message: text };
+    return null;
+  }
+
+  // Normal path: keywords win so "#lula" comments always assign a team.
+  if (detectKeyword(text, settings)) return { kind: "chat", username, message: text };
+  return tryGift();
 }
 
 export async function ingestChat(db: Admin, settings: ExtensionSettings, username: string, message: string) {

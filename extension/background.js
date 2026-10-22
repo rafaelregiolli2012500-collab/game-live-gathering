@@ -99,7 +99,15 @@ async function runOcr(tab, msg) {
       const base = prev && now - prev.at < 30000 ? prev.qty : 0; // combo counter still growing
       ocrQty.set(gk, { qty: Math.max(qty, base), at: now });
       if (first || qty <= base) continue; // gifts already on screen when reading started are history
-      const p = { type: "raw", text: `${it.username}\n${it.gift || ""} ${it.text}`.slice(0, 600), username: it.username, quantity: qty - base, event_id: "ocr-" + gk.slice(0, 60) + "-" + now.toString(36) };
+      const delta = Math.max(1, qty - base);
+      const p = {
+        type: "raw",
+        text: `${it.username}\n${it.gift || ""} ${it.text}`.slice(0, 600),
+        username: it.username,
+        quantity: delta,
+        event_id: "ocr-" + gk.slice(0, 60) + "-" + now.toString(36),
+        prefer_gift: true,
+      };
       await logResult(p, await send(p), "OCR");
     } else {
       const p = { type: "raw", text: `${it.username}\n${it.text}`.slice(0, 600), username: it.username, event_id: "ocr-c-" + now.toString(36) };

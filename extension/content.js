@@ -23,27 +23,66 @@
   }
 
   // Text of an element piece by piece (one line per text/image), so "name" and "comment" stay separate
-  // even when the site puts them side by side. Gift icons usually carry the gift name in alt/title.
+  // even when the site puts them side by side. Gift icons usually carry the gift name in alt/title/src.
   function fullText(el) {
     if (!el || el.nodeType !== 1) return "";
     const parts = [];
+    const seen = new Set();
+    const push = (t) => {
+      const v = (t || "").trim();
+      if (!v || v.length > 60 || seen.has(v)) return;
+      seen.add(v);
+      parts.push(v);
+    };
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
-    for (let n = el; n && parts.length < 30; n = walker.nextNode()) {
-      if (n.nodeType === 3) { const t = n.nodeValue.trim(); if (t) parts.push(t); }
-      else if (n.tagName === "IMG" || n.getAttribute("aria-label")) {
-        const t = n.getAttribute("alt") || n.getAttribute("title") || n.getAttribute("aria-label") || "";
-        if (t && t.length < 40) parts.push(t);
-      } else if (n.tagName === "SCRIPT" || n.tagName === "STYLE") { /* skipped */ }
+    for (let n = el; n && parts.length < 40; n = walker.nextNode()) {
+      if (n.nodeType === 3) push(n.nodeValue);
+      else if (n.nodeType === 1) {
+        if (n.tagName === "SCRIPT" || n.tagName === "STYLE") continue;
+        if (n.tagName === "IMG" || n.tagName === "IMAGE" || n.getAttribute("aria-label") || n.getAttribute("data-e2e")) {
+          push(n.getAttribute("alt"));
+          push(n.getAttribute("title"));
+          push(n.getAttribute("aria-label"));
+          // TikTok / live UIs often put the gift id in the image URL path
+          const src = n.getAttribute("src") || n.getAttribute("data-src") || "";
+          const file = src.split("/").pop() || "";
+          const m = file.match(/([a-z][a-z0-9_-]{2,30})/i);
+          if (m) push(m[1].replace(/[-_]/g, " "));
+        }
+      }
     }
     return parts.join("\n").slice(0, 600);
   }
 
+  /** Quantity from live gift UIs: x5, ×5, 5x, "x 12", badge-only numbers next to gift text. */
+  function parseQty(text) {
+    const t = text || "";
+    let m = t.match(/[x×]\s*(\d{1,4})\b/i) || t.match(/\b(\d{1,4})\s*[x×]\b/i);
+    if (m) return Math.max(1, Math.min(999, Number(m[1])));
+    // Isolated combo counter on its own line (common in gift toasts)
+    m = t.match(/(?:^|\n)\s*(\d{1,4})\s*(?:\n|$)/);
+    if (m) return Math.max(1, Math.min(999, Number(m[1])));
+    return 1;
+  }
+
   const isScroller = (el) => { const o = getComputedStyle(el).overflowY; return (o === "auto" || o === "scroll") && el.scrollHeight > 0; };
   let pickedRoots = [];
+  let giftRoots = []; // specifically the gift area(s) — rows here are treated as gift candidates
 
   const hasTerm = (text) => {
     const t = norm(text);
     return terms.some((term) => term && t.includes(term));
+  };
+
+  const inGiftArea = (el) => giftRoots.some((r) => r.contains(el));
+
+  // Gift-looking row even without a known term (used only inside the chosen gift area)
+  const looksLikeGift = (text) => {
+    const t = norm(text);
+    if (!t || t.length < 2) return false;
+    if (/[x×]\s*\d{1,4}\b/.test(t) || /\b\d{1,4}\s*[x×]\b/.test(t)) return true;
+    if (/\b(enviou|mandou|sent|deu|gifted|enviado|presente|gift)\b/.test(t)) return true;
+    return false;
   };
 
   // From any node inside a message, climb to the whole message "row" (name + text), but not the whole list.
@@ -75,15 +114,29 @@
   function report(row, initial) {
     if (!enabled || !row || !row.isConnected) return;
     const text = fullText(row);
-    if (!text || text.length > 600 || !hasTerm(text)) return;
-    const qtyMatch = text.match(/[x×]\s*(\d{1,4})\b/i);
-    const qty = qtyMatch ? Number(qtyMatch[1]) : 1;
+    if (!text || text.length > 600) return;
+    const fromGiftArea = inGiftArea(row);
+    // Accept: known keyword/gift name, OR any gift-like row inside the chosen gift area
+    if (!hasTerm(text) && !(fromGiftArea && looksLikeGift(text))) return;
+
+    const qty = parseQty(text);
+    const hasExplicitQty = /[x×]\s*\d{1,4}\b|\b\d{1,4}\s*[x×]\b|(?:^|\n)\s*\d{1,4}\s*(?:\n|$)/i.test(text);
     const prev = rowQty.get(row) || 0;
     const key = norm(text);
     const now = Date.now();
-    if (qtyMatch) {
-      if (qty <= prev) return;
-      rowQty.set(row, qty);
+
+    if (hasExplicitQty || fromGiftArea) {
+      // Combo growth (x1 → x5): only send the delta once per increase
+      if (qty <= prev) {
+        // Still allow first non-qty text change inside gift area (name may appear before counter)
+        if (prev > 0) return;
+        const lastText = rowText.get(row);
+        if (lastText === key) return;
+        rowText.set(row, key);
+        if (recent.has(key) && now - recent.get(key) < 2000) return;
+      } else {
+        rowQty.set(row, qty);
+      }
     } else {
       const lastText = rowText.get(row);
       if (lastText === key) return; // same row, nothing new
@@ -94,7 +147,17 @@
     if (recent.size > 400) for (const [k, t] of recent) if (now - t > 60000) recent.delete(k);
     if (initial) return; // messages already on screen when we attached are history, not new events
     if (!rowIds.has(row)) rowIds.set(row, now.toString(36) + "-" + ++seq);
-    send({ type: "raw", text, quantity: qtyMatch ? qty - prev : null, event_id: rowIds.get(row) + "-" + qty });
+
+    // Always send a positive quantity so the game receives the gift amount
+    const delta = hasExplicitQty ? Math.max(1, qty - prev) : qty;
+    send({
+      type: "raw",
+      text,
+      quantity: delta,
+      event_id: rowIds.get(row) + "-" + qty,
+      // Hint for the server when this came from the gift panel
+      ...(fromGiftArea ? { prefer_gift: true } : {}),
+    });
   }
 
   // ================= observers =================
@@ -131,14 +194,24 @@
     const s = await chrome.storage.local.get(["giftMap", "chatMap", "paused", "autoMode", "ocrMode"]);
     enabled = !s.paused;
     autoMode = s.autoMode !== false;
-    const roots = [s.giftMap, s.chatMap].filter(Boolean).map((m) => document.querySelector(m.container)).filter(Boolean);
+    const giftEl = s.giftMap ? document.querySelector(s.giftMap.container) : null;
+    const chatEl = s.chatMap ? document.querySelector(s.chatMap.container) : null;
+    giftRoots = giftEl ? [giftEl] : [];
+    const roots = [giftEl, chatEl].filter(Boolean);
     pickedRoots = roots;
     if (s.ocrMode) return; // image reading is on: it sends everything, text reading would double the gifts
     if (autoMode) {
       // Whole page: works even if the site rebuilds its chat panel.
+      // Still track giftRoots so prefer_gift / looksLikeGift work when area was chosen.
       if (document.body) { markExisting(document.body); observe(document.body); }
     } else {
+      // Manual mode: observe only the chosen areas (gift + chat)
       roots.forEach((r) => { markExisting(r); observe(r); });
+      // If only gift area was chosen, still observe it aggressively
+      if (!roots.length && document.body) {
+        markExisting(document.body);
+        observe(document.body);
+      }
     }
   }
 
