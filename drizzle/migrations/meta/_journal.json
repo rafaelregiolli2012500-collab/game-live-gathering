@@ -15,13 +15,6 @@
       "when": 1792540061137,
       "tag": "0001_extension_bridge",
       "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1792631630062,
-      "tag": "0002_gift_images_activity",
-      "breakpoints": true
     }
   ]
 }
