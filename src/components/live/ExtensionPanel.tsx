@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Download, Gift, Hash, Play, Plug, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { clearViewerTeams, getExtensionPanel, updateExtensionSettings, type ExtensionPanelData } from "@/lib/extension.functions";
+import { clearViewerTeams, getExtensionPanel, setGiftImage, updateExtensionSettings, type ExtensionPanelData } from "@/lib/extension.functions";
 import { Button } from "@/components/game-ui/button";
 import { giftEffectLabel, giftIcon } from "@/lib/live";
 import type { GiftDelivery } from "@/lib/gift-feed";
@@ -45,6 +45,11 @@ export function ExtensionPanel({ delivery, inFight, onStart }: { delivery: Recor
     onSuccess: (_r, regen) => { toast.success(regen ? "Novo código gerado — atualize na extensão" : "Palavras-chave salvas"); qc.invalidateQueries({ queryKey: ["extension-panel"] }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar"),
   });
+  const mapImage = useMutation({
+    mutationFn: (v: { image_key: string; gift_id: string }) => setGiftImage({ data: v }),
+    onSuccess: () => { toast.success("Imagem do presente salva"); qc.invalidateQueries({ queryKey: ["extension-panel"] }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar"),
+  });
   const clear = useMutation({ mutationFn: () => clearViewerTeams(), onSuccess: () => qc.invalidateQueries({ queryKey: ["extension-panel"] }) });
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -72,6 +77,7 @@ export function ExtensionPanel({ delivery, inFight, onStart }: { delivery: Recor
           <li>No Chrome, abra <b>chrome://extensions</b> e ative o <b>Modo do desenvolvedor</b>.</li>
           <li>Clique em <b>Carregar sem compactação</b> e escolha a pasta descompactada.</li>
           <li>Abra a página da sua live (recarregue com F5 depois de instalar), clique no ícone da extensão, cole o endereço e o código e clique em <b>Conectar ao painel</b>.</li>
+          <li>Clique em <b>Escolher área dos presentes</b>: primeiro clique na lista de presentes, depois, num presente da lista, clique na <b>imagem</b>, no <b>nome</b> de quem enviou e na <b>quantidade</b> (x5).</li>
           <li>Pronto: a <b>leitura automática</b> já procura #lula, #flavio e os nomes dos presentes em toda a página. Tudo que for reconhecido aparece em <b>Atividade</b>.</li>
           <li>Se nada aparecer, ligue <b>Leitura por imagem (OCR)</b> e escolha a área do chat com 1 clique. A aba da live precisa ficar visível na tela.</li>
         </ol>
@@ -100,6 +106,32 @@ export function ExtensionPanel({ delivery, inFight, onStart }: { delivery: Recor
               <strong className="break-words">@{event.username} · {giftIcon(event.gift_id)} {event.gift_name} ×{event.quantity}</strong>
               <small className="text-muted-foreground">{event.benefited_character === "lula" ? "LULA" : "FLÁVIO"} · {giftEffectLabel(event)}</small>
               <small className="text-muted-foreground">{delivery[event.event_id] === "completed" ? "Aplicado na luta" : delivery[event.event_id] === "processing" ? "Em execução na luta" : delivery[event.event_id] === "queued" ? "Na fila da luta" : "Registrado no painel"}</small>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="admin-section" data-testid="extension-activity-section">
+        <div className="admin-section-title"><Plug size={15} /> ATIVIDADE DA EXTENSÃO</div>
+        <div className="admin-event-list">
+          {!data?.activity.length ? <span>Nenhum presente lido ainda.</span> : data.activity.map((a) => (
+            <small key={a.id} className={a.ok ? "text-foreground" : "text-destructive"}>{new Date(a.created_at).toLocaleTimeString()} · {a.ok ? "✔" : "✖"} {a.text}</small>
+          ))}
+        </div>
+      </section>
+
+      <section className="admin-section" data-testid="gift-images-section">
+        <div className="admin-section-title"><Gift size={15} /> IMAGENS DOS PRESENTES <small>{data?.images.length ?? 0}</small></div>
+        <small className="admin-persistence-note">Cada imagem de presente vista na live é reconhecida automaticamente. Se estiver errada ou não reconhecida, escolha o presente certo aqui.</small>
+        <div className="admin-event-list">
+          {!data?.images.length ? <span>Nenhuma imagem de presente lida ainda.</span> : data.images.map((img) => (
+            <div key={img.image_key} className="flex items-center gap-3 border-b border-border py-2 text-foreground">
+              {(img.preview || img.image_url) && <img src={img.preview || img.image_url || ""} alt={img.guess ?? "presente"} className="h-10 w-10 rounded object-contain" />}
+              <small className="min-w-0 flex-1 break-words">{img.guess ?? "Desconhecido"}{img.source === "manual" ? " · escolhido por você" : ""}</small>
+              <select data-testid={`gift-image-${img.image_key}`} value={img.gift_id ?? ""} onChange={(e) => mapImage.mutate({ image_key: img.image_key, gift_id: e.target.value })}>
+                <option value="">IGNORAR</option>
+                {data.rules.map((r) => <option key={r.gift_id} value={r.gift_id}>{r.gift_name}</option>)}
+              </select>
             </div>
           ))}
         </div>
