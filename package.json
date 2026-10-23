@@ -11,7 +11,33 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "desktop:service": "node desktop/service/main.mjs",
+    "desktop:dev": "concurrently -k \"npm run dev\" \"wait-on http://127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron desktop/main.cjs\"",
+    "desktop:build": "vite build && electron-builder --win",
+    "test:service-character": "node desktop/service/lib/character.test.mjs"
+  },
+  "build": {
+    "appId": "com.gamelive.arena",
+    "productName": "GAME.LIVE",
+    "directories": { "output": "release" },
+    "files": [
+      "dist/**/*",
+      "desktop/**/*",
+      "package.json"
+    ],
+    "extraResources": [],
+    "win": {
+      "target": ["nsis"],
+      "artifactName": "GAME.LIVE-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "GAME.LIVE"
+    }
   },
   "overrides": {
     "rolldown": "1.2.1"

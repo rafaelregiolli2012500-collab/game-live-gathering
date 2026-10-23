@@ -30,3 +30,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# GAME.LIVE desktop / secrets
+desktop/service/.env
+.env
+.env.*
+!.env.example
+release/
+*.exe
+*.blockmap
+dist-electron/

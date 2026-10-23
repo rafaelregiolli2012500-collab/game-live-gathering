@@ -149,6 +149,57 @@ export type Database = {
         }
         Relationships: []
       }
+      live_game_events: {
+        Row: {
+          attempts: number
+          character_key: string | null
+          coins: number
+          comment: string | null
+          created_at: string
+          event_id: string
+          gift_count: number
+          gift_name: string | null
+          id: string
+          lease_until: string | null
+          nickname: string | null
+          processor_id: string | null
+          status: string
+          username: string | null
+        }
+        Insert: {
+          attempts?: number
+          character_key?: string | null
+          coins?: number
+          comment?: string | null
+          created_at?: string
+          event_id: string
+          gift_count?: number
+          gift_name?: string | null
+          id?: string
+          lease_until?: string | null
+          nickname?: string | null
+          processor_id?: string | null
+          status?: string
+          username?: string | null
+        }
+        Update: {
+          attempts?: number
+          character_key?: string | null
+          coins?: number
+          comment?: string | null
+          created_at?: string
+          event_id?: string
+          gift_count?: number
+          gift_name?: string | null
+          id?: string
+          lease_until?: string | null
+          nickname?: string | null
+          processor_id?: string | null
+          status?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
       round_results: {
         Row: {
           contributors: Json
@@ -247,7 +298,39 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_live_game_events: {
+        Args: {
+          p_lease_seconds?: number
+          p_limit: number
+          p_processor_id: string
+        }
+        Returns: {
+          attempts: number
+          character_key: string | null
+          coins: number
+          comment: string | null
+          created_at: string
+          event_id: string
+          gift_count: number
+          gift_name: string | null
+          id: string
+          lease_until: string | null
+          nickname: string | null
+          processor_id: string | null
+          status: string
+          username: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "live_game_events"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      requeue_expired_live_game_events: {
+        Args: { p_lease_seconds?: number }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
