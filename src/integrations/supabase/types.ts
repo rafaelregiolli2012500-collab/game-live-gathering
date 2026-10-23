@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      extension_activity: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: number
+          kind: string
+          ok: boolean
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: number
+          kind: string
+          ok?: boolean
+          text: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: number
+          kind?: string
+          ok?: boolean
+          text?: string
+        }
+        Relationships: []
+      }
       extension_settings: {
         Row: {
           default_character: string
@@ -40,6 +67,39 @@ export type Database = {
           keyword_lula?: string
           last_seen_at?: string | null
           token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gift_images: {
+        Row: {
+          game_id: string
+          gift_id: string | null
+          guess: string | null
+          image_key: string
+          image_url: string | null
+          preview: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          game_id: string
+          gift_id?: string | null
+          guess?: string | null
+          image_key: string
+          image_url?: string | null
+          preview?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          game_id?: string
+          gift_id?: string | null
+          guess?: string | null
+          image_key?: string
+          image_url?: string | null
+          preview?: string | null
+          source?: string
           updated_at?: string
         }
         Relationships: []
@@ -86,6 +146,57 @@ export type Database = {
           game_id?: string
           id?: string
           sequence?: never
+        }
+        Relationships: []
+      }
+      live_game_events: {
+        Row: {
+          attempts: number
+          character_key: string | null
+          coins: number
+          comment: string | null
+          created_at: string
+          event_id: string
+          gift_count: number
+          gift_name: string | null
+          id: string
+          lease_until: string | null
+          nickname: string | null
+          processor_id: string | null
+          status: string
+          username: string | null
+        }
+        Insert: {
+          attempts?: number
+          character_key?: string | null
+          coins?: number
+          comment?: string | null
+          created_at?: string
+          event_id: string
+          gift_count?: number
+          gift_name?: string | null
+          id?: string
+          lease_until?: string | null
+          nickname?: string | null
+          processor_id?: string | null
+          status?: string
+          username?: string | null
+        }
+        Update: {
+          attempts?: number
+          character_key?: string | null
+          coins?: number
+          comment?: string | null
+          created_at?: string
+          event_id?: string
+          gift_count?: number
+          gift_name?: string | null
+          id?: string
+          lease_until?: string | null
+          nickname?: string | null
+          processor_id?: string | null
+          status?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -187,7 +298,39 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_live_game_events: {
+        Args: {
+          p_lease_seconds?: number
+          p_limit: number
+          p_processor_id: string
+        }
+        Returns: {
+          attempts: number
+          character_key: string | null
+          coins: number
+          comment: string | null
+          created_at: string
+          event_id: string
+          gift_count: number
+          gift_name: string | null
+          id: string
+          lease_until: string | null
+          nickname: string | null
+          processor_id: string | null
+          status: string
+          username: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "live_game_events"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      requeue_expired_live_game_events: {
+        Args: { p_lease_seconds?: number }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

@@ -11,6 +11,7 @@ import { Button } from "@/components/game-ui/button";
 import { CANVAS_H, CANVAS_W, CHARACTERS, portraitPath } from "@/game/assets";
 import { ArenaEngine, emptyStats } from "@/game/engine";
 import type { CharacterId, HudSnapshot } from "@/game/types";
+import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { useGiftSocket } from "@/hooks/useGiftSocket";
 import { DEFAULT_LIVE_CONFIG, giftEffectLabel, giftIcon } from "@/lib/live";
 import * as liveApi from "@/lib/live.functions";
@@ -166,6 +167,8 @@ export default function Home() {
       }
     }
   }, [addRoundContributor, beginNextGift]);
+
+  const desktop = useDesktopBridge(receiveGift);
 
   useEffect(() => { [...socketEvents].reverse().forEach(receiveGift); }, [socketEvents, receiveGift]);
 
@@ -385,6 +388,11 @@ export default function Home() {
         onSave={(config) => saveConfig.mutate(config)}
         onSimulate={simulate}
         onCheckConnection={() => { queryClient.invalidateQueries({ queryKey: ["live-status"] }); toast("Verificando conexão…"); }}
+        desktopStatusText={
+          desktop.isDesktop
+            ? `${desktop.state}: ${desktop.message}`
+            : "Navegador — fila live só no app desktop GAME.LIVE"
+        }
         arena={{
           inFight: screen === "arena", paused, character: left, volume,
           onStart: enterArena, onTogglePause: () => setPaused((value) => !value), onRestart: () => engineRef.current?.restartRound(),

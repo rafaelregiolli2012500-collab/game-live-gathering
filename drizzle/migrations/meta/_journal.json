@@ -15,6 +15,13 @@
       "when": 1792540061137,
       "tag": "0001_extension_bridge",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792713800479,
+      "tag": "0002_live_game_events_queue",
+      "breakpoints": true
     }
   ]
 }

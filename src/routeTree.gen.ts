@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPublicGameLiveEventsRouteImport } from './routes/api/public/game-live-events'
 import { Route as ApiPublicExtensionEventRouteImport } from './routes/api/public/extension.event'
 import { Route as ApiPublicExtensionOcrRouteImport } from './routes/api/public/extension.ocr'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicGameLiveEventsRoute = ApiPublicGameLiveEventsRouteImport.update({
+  id: '/api/public/game-live-events',
+  path: '/api/public/game-live-events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicExtensionEventRoute = ApiPublicExtensionEventRouteImport.update({
@@ -31,34 +37,47 @@ const ApiPublicExtensionOcrRoute = ApiPublicExtensionOcrRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/public/game-live-events': typeof ApiPublicGameLiveEventsRoute
   '/api/public/extension/event': typeof ApiPublicExtensionEventRoute
   '/api/public/extension/ocr': typeof ApiPublicExtensionOcrRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/public/game-live-events': typeof ApiPublicGameLiveEventsRoute
   '/api/public/extension/event': typeof ApiPublicExtensionEventRoute
   '/api/public/extension/ocr': typeof ApiPublicExtensionOcrRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/public/game-live-events': typeof ApiPublicGameLiveEventsRoute
   '/api/public/extension/event': typeof ApiPublicExtensionEventRoute
   '/api/public/extension/ocr': typeof ApiPublicExtensionOcrRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/public/extension/event' | '/api/public/extension/ocr'
+  fullPaths:
+    | '/'
+    | '/api/public/game-live-events'
+    | '/api/public/extension/event'
+    | '/api/public/extension/ocr'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/public/extension/event' | '/api/public/extension/ocr'
+  to:
+    | '/'
+    | '/api/public/game-live-events'
+    | '/api/public/extension/event'
+    | '/api/public/extension/ocr'
   id:
     | '__root__'
     | '/'
+    | '/api/public/game-live-events'
     | '/api/public/extension/event'
     | '/api/public/extension/ocr'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiPublicGameLiveEventsRoute: typeof ApiPublicGameLiveEventsRoute
   ApiPublicExtensionEventRoute: typeof ApiPublicExtensionEventRoute
   ApiPublicExtensionOcrRoute: typeof ApiPublicExtensionOcrRoute
 }
@@ -70,6 +89,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/game-live-events': {
+      id: '/api/public/game-live-events'
+      path: '/api/public/game-live-events'
+      fullPath: '/api/public/game-live-events'
+      preLoaderRoute: typeof ApiPublicGameLiveEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/extension/event': {
@@ -91,6 +117,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiPublicGameLiveEventsRoute: ApiPublicGameLiveEventsRoute,
   ApiPublicExtensionEventRoute: ApiPublicExtensionEventRoute,
   ApiPublicExtensionOcrRoute: ApiPublicExtensionOcrRoute,
 }
