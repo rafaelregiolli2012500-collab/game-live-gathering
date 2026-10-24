@@ -30,7 +30,7 @@ export const Route = createFileRoute("/api/public/game-live-events")({
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
       POST: async ({ request }) => {
-        const expected = process.env.GAME_LIVE_TOKEN ?? "";
+        const expected = process.env["GAME_LIVE_TOKEN"] ?? "";
         const token = request.headers.get("x-game-token") ?? "";
         if (!expected || !token || token !== expected) {
           return json({ ok: false, error: "Token inválido" }, 401);
