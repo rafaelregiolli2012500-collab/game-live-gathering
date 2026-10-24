@@ -134,7 +134,8 @@ export function classifyRaw(
   const body = escaped ? text.split(new RegExp(escaped, "gi")).join(" ") : text;
 
   const tryGift = () => {
-    const rule = matchRule(rules, body) ?? matchRule(rules, text);
+    // If removing the username emptied the row, the text was only a name — never a gift.
+    const rule = matchRule(rules, body) ?? (body.trim() ? matchRule(rules, text) : undefined);
     if (!rule) return null;
     const quantity = parseQuantity(body) || parseQuantity(text) || 1;
     return { kind: "gift" as const, username, gift: rule.gift_name, quantity };
