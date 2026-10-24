@@ -29,13 +29,13 @@ function num(name, fallback) {
 export const config = {
   serviceRoot,
   processorId: process.env.PROCESSOR_ID || `proc-${process.pid}`,
-  supabaseUrl: process.env.SUPABASE_URL || "https://cudjcpheouvumwalslff.supabase.co",
+  supabaseUrl: process.env.SUPABASE_URL || "https://vxmnakqpfkbejetdfata.supabase.co",
   /** Prefer a restricted key; service_role only for local streamer machine if no RPC exists */
   supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "",
   gameLiveToken: process.env.GAME_LIVE_TOKEN || "",
   edgeFunctionUrl:
     process.env.EDGE_FUNCTION_URL ||
-    "https://cudjcpheouvumwalslff.supabase.co/functions/v1/game-live-events",
+    "https://game-live-gathering.lovable.app/api/public/game-live-events",
   pollIntervalMs: num("POLL_INTERVAL_MS", 1500),
   batchSize: Math.max(1, Math.min(50, num("BATCH_SIZE", 10))),
   leaseSeconds: num("LEASE_SECONDS", 60),

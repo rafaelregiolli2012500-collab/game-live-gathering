@@ -1,5 +1,5 @@
 -- GAME.LIVE — RPCs opcionais para reserva atômica da fila
--- Executar no SQL Editor do Supabase (projeto cudjcpheouvumwalslff)
+-- Executar no SQL do backend (Lovable Cloud)
 -- NÃO é destrutivo: só adiciona funções e colunas opcionais.
 
 -- Colunas opcionais para lease (seguro se já existirem — ajuste se der erro)

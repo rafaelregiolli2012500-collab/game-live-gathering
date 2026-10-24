@@ -134,8 +134,15 @@ export function classifyRaw(
   const body = escaped ? text.split(new RegExp(escaped, "gi")).join(" ") : text;
 
   const tryGift = () => {
-    const rule = matchRule(rules, body) ?? matchRule(rules, text);
+    const inBody = matchRule(rules, body);
+    const rule = inBody ?? matchRule(rules, text);
     if (!rule) return null;
+    // A match that only exists inside the username ("rosa_22") is not a gift.
+    if (!inBody && username) {
+      const userNorm = normalize(username);
+      const names = [normalize(rule.gift_name), normalize(rule.gift_id), ...(ALIASES[rule.gift_id] ?? [])];
+      if (names.some((n) => n && userNorm.includes(n))) return null;
+    }
     const quantity = parseQuantity(body) || parseQuantity(text) || 1;
     return { kind: "gift" as const, username, gift: rule.gift_name, quantity };
   };
